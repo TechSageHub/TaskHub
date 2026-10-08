@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TaskHub.Api/TaskHub.Api.csproj" />
+  <Project Path="TaskHub.Tests/TaskHub.Tests.csproj" />
+</Solution>
