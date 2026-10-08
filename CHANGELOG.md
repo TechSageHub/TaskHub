@@ -2,6 +2,15 @@
 
 All notable changes to TaskHub. Format follows Keep a Changelog (Unreleased / versions).
 
+## [Unreleased]
+### Changed
+- Frontend redesigned as a professional SaaS dashboard: sidebar navigation with
+  organisation switcher, task dashboard with statistics, task dialog, members table
+  with add-member dialog, audit screen with filters and pagination, file-picker
+  import, design-token stylesheet, responsive drawer navigation, skeletons and
+  empty states. No API or behavioural changes; all existing tests updated and green
+  (see docs/adr/0014-frontend-redesign.md).
+
 ## [1.0.0] - 2026-10-08
 ### Added
 - Cookie-session auth (register/login/logout/me), PBKDF2 hashing, CSRF double-submit,

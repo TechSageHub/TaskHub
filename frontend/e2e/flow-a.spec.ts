@@ -22,15 +22,16 @@ test('Flow A — member journey', async ({ page }) => {
   await page.getByRole('button', { name: 'Create organisation' }).click();
   await expect(page.getByRole('option', { name: /E2E Org A/ })).toBeAttached({ timeout: 15000 });
 
-  // create 3 todos
+  // create 3 todos (via the New task dialog)
   for (const title of ['Alpha task', 'Beta task', 'Gamma task']) {
+    await page.getByRole('button', { name: 'New task' }).click();
     await page.getByLabel('Title (required)').fill(title);
     await page.getByRole('button', { name: 'Create todo' }).click();
     await expect(page.getByText(title).first()).toBeVisible({ timeout: 15000 });
   }
 
-  // filter by status Open → all 3 visible
-  await expect(page.getByText('(3)').first()).toBeVisible();
+  // filter by status Open → all 3 visible (stat card proves the count)
+  await expect(page.locator('.stat', { hasText: 'Total tasks' }).getByText('3')).toBeVisible();
   // sort by priority desc exercised via control
   await page.getByLabel('Sort todos').selectOption('priority:desc');
   // paginate: page size is 10 so all on one page; assert pager state

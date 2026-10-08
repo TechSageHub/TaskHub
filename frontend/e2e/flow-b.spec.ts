@@ -36,17 +36,20 @@ test('Flow B — org admin journey', async ({ page, context }) => {
   await page2.close();
   await ctx2.close();
 
-  // add member
+  // add member (via dialog)
   await page.getByRole('button', { name: 'Members' }).click();
-  await page.getByLabel('Username to add').fill(member);
   await page.getByRole('button', { name: 'Add member' }).click();
-  await expect(page.getByText(new RegExp(`${member} — Member`))).toBeVisible({ timeout: 15000 });
+  await page.getByLabel('Username to add').fill(member);
+  await page.getByRole('button', { name: 'Add to organisation' }).click();
+  await expect(page.getByText(member)).toBeVisible({ timeout: 15000 });
+  const memberRow = page.getByRole('row', { name: new RegExp(member) });
+  await expect(memberRow.getByText('Member', { exact: true })).toBeVisible();
 
   // change role to OrgAdmin and back to Member
   await page.getByRole('button', { name: `Make ${member} OrgAdmin` }).click();
-  await expect(page.getByText(new RegExp(`${member} — OrgAdmin`))).toBeVisible({ timeout: 15000 });
+  await expect(memberRow.getByText('OrgAdmin', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: `Make ${member} Member` }).click();
-  await expect(page.getByText(new RegExp(`${member} — Member`))).toBeVisible({ timeout: 15000 });
+  await expect(memberRow.getByText('Member', { exact: true })).toBeVisible({ timeout: 15000 });
 
   // audit log visible to admin
   await page.getByRole('button', { name: 'Audit log' }).click();
@@ -56,6 +59,7 @@ test('Flow B — org admin journey', async ({ page, context }) => {
 
   // create a todo, soft delete, restore
   await page.getByRole('button', { name: 'Todos' }).click();
+  await page.getByRole('button', { name: 'New task' }).click();
   await page.getByLabel('Title (required)').fill('Restore me');
   await page.getByRole('button', { name: 'Create todo' }).click();
   await expect(page.getByText('Restore me').first()).toBeVisible({ timeout: 15000 });
@@ -75,7 +79,9 @@ test('Flow B — org admin journey', async ({ page, context }) => {
       { clientProvidedId: `e2e-bad-${suffix}`, title: '', status: 'Bogus', tags: ['bad tag!'] },
     ],
   });
-  await page.getByLabel('Paste export JSON to import').fill(payload);
+  await page.getByLabel('Choose JSON file to import').setInputFiles({
+    name: 'import.json', mimeType: 'application/json', buffer: Buffer.from(payload),
+  });
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByText(/Accepted: 1.*Rejected: 1/)).toBeVisible({ timeout: 15000 });
   await expect(page.getByText(/Row 1:/)).toBeVisible();

@@ -30,7 +30,7 @@ vi.mock('../api/client', async (importOriginal) => {
   };
 });
 
-import { TodoList } from '../App';
+import { TodoList } from '../components/TaskDashboard';
 import { api as apiMock } from '../api/client';
 
 describe('optimistic toggle rollback', () => {
