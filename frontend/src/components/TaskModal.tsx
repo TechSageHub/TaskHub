@@ -64,7 +64,7 @@ export default function TaskModal({ orgId, editing, onClose, onSaved }: {
   return (
     <Modal
       title={editing ? 'Edit task' : 'New task'}
-      sub={editing ? 'Changes are concurrency-checked against the latest version.' : undefined}
+      sub={editing ? 'Update this task. If someone else made changes, you will be asked to review before saving.' : undefined}
       onClose={onClose}
     >
       <form onSubmit={(e) => void submit(e)} aria-label={editing ? 'Edit todo' : 'Create todo'} noValidate>

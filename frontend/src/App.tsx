@@ -136,7 +136,7 @@ export default function App() {
           {globalError && <ErrorAlert error={globalError} />}
           {activeOrg ? (
             <>
-              {view === 'todos' && <TodoList orgId={activeOrg.id} />}
+              {view === 'todos' && <TodoList orgId={activeOrg.id} role={role} />}
               {view === 'members' && <MembersPanel orgId={activeOrg.id} role={role} />}
               {view === 'audit' && <AuditPanel orgId={activeOrg.id} role={role} />}
               {view === 'import' && <ImportExportPanel orgId={activeOrg.id} />}

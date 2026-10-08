@@ -27,7 +27,7 @@ function isOverdue(t: TodoDto): boolean {
 }
 
 /** Task dashboard. Same API + concurrency behaviour as before; new SaaS layout. */
-export function TodoList({ orgId }: { orgId: string }) {
+export function TodoList({ orgId, role = 'Member' }: { orgId: string; role?: string }) {
   const [todos, setTodos] = useState<TodoDto[]>([]);
   const [etags, setEtags] = useState<Record<string, string>>({});
   const [total, setTotal] = useState(0);
@@ -41,6 +41,7 @@ export function TodoList({ orgId }: { orgId: string }) {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const filtersActive = f.status !== '' || f.overdue || f.tag !== '' || f.includeArchived || f.includeDeleted;
+  const isAdmin = role === 'OrgAdmin';
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -53,14 +54,15 @@ export function TodoList({ orgId }: { orgId: string }) {
         ...(f.includeArchived ? { includeArchived: true } : {}),
         ...(f.includeDeleted ? { includeDeleted: true } : {}),
       };
-      const [page, openRes, doneRes, overdueRes] = await Promise.all([
+      const [page, openRes, doneRes, overdueRes, allRes] = await Promise.all([
         api<PageDto<TodoDto>>(`/api/v1/orgs/${orgId}/todos`, { query: { ...scoped, ...base, page: f.page, pageSize: 10 } }),
         api<PageDto<TodoDto>>(`/api/v1/orgs/${orgId}/todos`, { query: { status: 'Open', page: 1, pageSize: 1 } }),
         api<PageDto<TodoDto>>(`/api/v1/orgs/${orgId}/todos`, { query: { status: 'Done', page: 1, pageSize: 1 } }),
         api<PageDto<TodoDto>>(`/api/v1/orgs/${orgId}/todos`, { query: { overdue: 'true', page: 1, pageSize: 1 } }),
+        api<PageDto<TodoDto>>(`/api/v1/orgs/${orgId}/todos`, { query: { page: 1, pageSize: 1 } }),
       ]);
       setTodos(page.data.items); setTotal(page.data.total); setTotalPages(Math.max(1, page.data.totalPages));
-      setStats({ total: page.data.total, open: openRes.data.total, done: doneRes.data.total, overdue: overdueRes.data.total });
+      setStats({ total: allRes.data.total, open: openRes.data.total, done: doneRes.data.total, overdue: overdueRes.data.total });
       // refresh ETags per row so mutations use fresh versions
       const next: Record<string, string> = {};
       for (const t of page.data.items) {
@@ -198,7 +200,7 @@ export function TodoList({ orgId }: { orgId: string }) {
           </div>
         ) : (
           <>
-            <ul className="todo-list">
+            <ul className="task-list">
               {todos.map((t) => {
                 const done = t.status === 'Done';
                 const pending = busyId === t.id;
@@ -238,7 +240,9 @@ export function TodoList({ orgId }: { orgId: string }) {
                         ) : (
                           <Button size="sm" variant="ghost" aria-label={`Delete ${t.title}`} onClick={() => void remove(t, false)} disabled={pending}>Delete</Button>
                         )}
-                        <Button size="sm" variant="ghost" aria-label={`Permanently delete ${t.title} (admin only)`} onClick={() => setConfirmHardDelete(t)}>Hard delete</Button>
+                        {isAdmin && (
+                          <Button size="sm" variant="ghost" aria-label={`Permanently delete ${t.title}`} onClick={() => setConfirmHardDelete(t)}>Hard delete</Button>
+                        )}
                       </div>
                     </div>
                   </li>

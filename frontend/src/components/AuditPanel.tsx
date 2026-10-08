@@ -56,14 +56,14 @@ export default function AuditPanel({ orgId, role }: { orgId: string; role: strin
         <>
           <div className="table-wrap" role="region" aria-label="Audit entries" tabIndex={0}>
             <table className="data">
-              <thead><tr><th scope="col">Time</th><th scope="col">Action</th><th scope="col">Entity</th><th scope="col">Actor</th><th scope="col">Correlation</th></tr></thead>
+              <thead><tr><th scope="col">Time</th><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Actor</th><th scope="col">Ref</th></tr></thead>
               <tbody>{entries.map((a) => (
                 <tr key={a.id}>
-                  <td>{new Date(a.timestamp).toLocaleString()}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{new Date(a.timestamp).toLocaleString()}</td>
                   <td><strong>{a.action}</strong></td>
-                  <td>{a.entityType}/{a.entityId.slice(0, 8)}</td>
-                  <td>{a.actorUserId ? <span className="mono">{a.actorUserId.slice(0, 8)}</span> : 'system'}</td>
-                  <td><code className="mono">{a.correlationId.slice(0, 8)}</code></td>
+                  <td>{a.entityType}</td>
+                  <td>{a.actorUserId ? <code className="mono">{a.actorUserId.slice(0, 8)}…</code> : <span style={{ color: 'var(--muted)' }}>system</span>}</td>
+                  <td><code className="mono">{a.correlationId.slice(0, 8)}…</code></td>
                 </tr>
               ))}</tbody>
             </table>
