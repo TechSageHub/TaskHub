@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { api, ApiError, validateCredentials } from '../api/client';
-import { FieldError } from './ui';
+import { api, ApiError, toUserError, validateCredentials } from '../api/client';
+import type { UserError } from '../api/client';
+import { ErrorAlert, FieldError } from './ui';
 
 const POINTS = [
   'Organisations keep every team\u2019s work cleanly separated.',
@@ -15,7 +16,7 @@ export default function AuthScreen({ onDone }: { onDone: () => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<UserError | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
@@ -28,12 +29,11 @@ export default function AuthScreen({ onDone }: { onDone: () => void }) {
       await api(mode === 'login' ? '/api/v1/auth/login' : '/api/v1/auth/register', { method: 'POST', body: { username, password } });
       onDone();
     } catch (err) {
-      const ae = err as ApiError;
-      if (ae.fields) {
+      if (err instanceof ApiError && err.fields) {
         const flat: Record<string, string> = {};
-        for (const [k, arr] of Object.entries(ae.fields)) flat[k] = arr.join(' ');
+        for (const [k, arr] of Object.entries(err.fields)) flat[k] = arr.join(' ');
         setErrors(flat);
-      } else setServerError(ae.message + (ae.correlationId ? ` (ref ${ae.correlationId})` : ''));
+      } else setServerError(toUserError(err));
     } finally { setBusy(false); }
   }
 
@@ -77,7 +77,7 @@ export default function AuthScreen({ onDone }: { onDone: () => void }) {
               {!errors.password && mode === 'register' && <span id="auth-password-hint" className="field-hint">At least 8 characters.</span>}
               <FieldError id="auth-password-err" message={errors.password} />
             </div>
-            {serverError && <p className="alert alert-error" role="alert">{serverError}</p>}
+            <ErrorAlert error={serverError} />
             <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}
             </button>

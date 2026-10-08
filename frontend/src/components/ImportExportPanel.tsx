@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { api, ApiError } from '../api/client';
+import { api, toUserError } from '../api/client';
+import type { UserError } from '../api/client';
 import type { ImportReport } from '../api/types';
-import { Alert, Button, PageHeader } from './ui';
+import { Alert, Button, ErrorAlert, PageHeader } from './ui';
 
 /** Import/export with file picker (no raw-JSON pasting required). Same API + idempotency. */
 export default function ImportExportPanel({ orgId }: { orgId: string }) {
   const [report, setReport] = useState<ImportReport | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserError | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileText, setFileText] = useState<string | null>(null);
   const [busy, setBusy] = useState<'export' | 'import' | null>(null);
@@ -22,7 +23,7 @@ export default function ImportExportPanel({ orgId }: { orgId: string }) {
       a.href = URL.createObjectURL(blob); a.download = `taskhub-export-${orgId}.json`; a.click();
       URL.revokeObjectURL(a.href);
       setExported(true);
-    } catch (err) { setError((err as ApiError).message); }
+    } catch (err) { setError(toUserError(err)); }
     finally { setBusy(null); }
   }
 
@@ -32,12 +33,12 @@ export default function ImportExportPanel({ orgId }: { orgId: string }) {
     setReport(null); setError(null);
     if (!f) { setFileText(null); return; }
     try { setFileText(await f.text()); }
-    catch { setError('Could not read that file. Choose a JSON export file.'); setFileText(null); }
+    catch { setError({ message: 'Could not read that file. Choose a JSON export file.' }); setFileText(null); }
   }
 
   async function doImport(e: FormEvent) {
     e.preventDefault(); setError(null); setReport(null);
-    if (!fileText) { setError('Choose a JSON file to import first.'); return; }
+    if (!fileText) { setError({ message: 'Choose a JSON file to import first.' }); return; }
     setBusy('import');
     try {
       const parsed = JSON.parse(fileText) as { items?: unknown[] };
@@ -48,14 +49,16 @@ export default function ImportExportPanel({ orgId }: { orgId: string }) {
       });
       setReport(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'That file is not valid import JSON. Use a file previously exported from TaskHub.');
+      if (err instanceof SyntaxError || (err instanceof Error && err.message === 'bad-shape')) {
+        setError({ message: 'That file is not valid import JSON. Use a file previously exported from TaskHub.' });
+      } else setError(toUserError(err));
     } finally { setBusy(null); }
   }
 
   return (
     <div>
       <PageHeader title="Import / Export" description="Move tasks in and out of this organisation for onboarding and handovers." />
-      {error && <Alert kind="error">{error}</Alert>}
+      <ErrorAlert error={error} />
       <div className="io-grid">
         <section className="card" aria-label="Export">
           <h3>Export tasks</h3>

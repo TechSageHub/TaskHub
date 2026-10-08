@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { UserError } from '../api/client';
 
 /* ---------- buttons ---------- */
 type BtnVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -36,6 +37,48 @@ export function Alert({ kind, children }: { kind: 'error' | 'success' | 'info'; 
 export function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return <p id={id} className="field-error" role="alert">{message}</p>;
+}
+
+/* ---------- error presentation ---------- */
+function ErrorReference({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+    } catch {
+      // Clipboard API unavailable (e.g. insecure context) — reference stays visible.
+    }
+  }
+  return (
+    <details className="error-details">
+      <summary>Error details</summary>
+      <p>Reference: <code className="mono">{value}</code></p>
+      <button type="button" className="btn btn-ghost btn-sm" onClick={() => void copy()}>
+        {copied ? 'Copied' : 'Copy error reference'}
+      </button>
+    </details>
+  );
+}
+
+/**
+ * Consistent user-facing error: human-readable message, optional retry, and an
+ * opt-in "Error details" disclosure holding the support reference. Technical
+ * details never appear in the primary message.
+ */
+export function ErrorAlert({ error, onRetry }: { error: UserError | null; onRetry?: () => void }) {
+  if (!error) return null;
+  return (
+    <div className="alert alert-error" role="alert">
+      <p className="alert-message">{error.message}</p>
+      {(onRetry || error.reference) && (
+        <div className="alert-row">
+          {onRetry && <button type="button" className="btn btn-secondary btn-sm" onClick={onRetry}>Retry</button>}
+          {error.reference && <ErrorReference value={error.reference} />}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ---------- loading / empty ---------- */

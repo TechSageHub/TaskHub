@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { api, ApiError } from './api/client';
+import { api, toUserError } from './api/client';
+import type { UserError } from './api/client';
 import type { OrgRef, UserDto } from './api/types';
 import './App.css';
 import AuditPanel from './components/AuditPanel';
@@ -8,6 +9,7 @@ import AuthScreen from './components/AuthScreen';
 import ImportExportPanel from './components/ImportExportPanel';
 import MembersPanel from './components/MembersPanel';
 import { TodoList } from './components/TaskDashboard';
+import { ErrorAlert } from './components/ui';
 
 interface MeResponse { user: UserDto; organisations: OrgRef[] }
 
@@ -25,7 +27,7 @@ export default function App() {
   const [orgs, setOrgs] = useState<OrgRef[]>([]);
   const [activeOrgId, setActiveOrgId] = useState<string | null>(() => localStorage.getItem('taskhub.activeOrg'));
   const [view, setView] = useState<View>('todos');
-  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<UserError | null>(null);
   const [loading, setLoading] = useState(true);
   const [navOpen, setNavOpen] = useState(false);
 
@@ -131,7 +133,7 @@ export default function App() {
           </div>
         </header>
         <main id="main-content" className="content" tabIndex={-1}>
-          {globalError && <p className="alert alert-error" role="alert">{globalError}</p>}
+          {globalError && <ErrorAlert error={globalError} />}
           {activeOrg ? (
             <>
               {view === 'todos' && <TodoList orgId={activeOrg.id} />}
@@ -151,17 +153,17 @@ export default function App() {
   );
 }
 
-function CreateOrgForm({ onCreated, onError }: { onCreated: (id: string) => void; onError: (m: string | null) => void }) {
+function CreateOrgForm({ onCreated, onError }: { onCreated: (id: string) => void; onError: (m: UserError | null) => void }) {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   async function create(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { onError('Organisation name is required.'); return; }
+    if (!name.trim()) { onError({ message: 'Organisation name is required.' }); return; }
     setBusy(true); onError(null);
     try {
       const { data } = await api<OrgRef>('/api/v1/orgs', { method: 'POST', body: { name: name.trim() } });
       setName(''); onCreated(data.id);
-    } catch (err) { onError((err as ApiError).message); } finally { setBusy(false); }
+    } catch (err) { onError(toUserError(err)); } finally { setBusy(false); }
   }
   return (
     <form onSubmit={(e) => void create(e)} className="org-create">

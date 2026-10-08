@@ -284,6 +284,12 @@ table.data td.actions-cell .btn + .btn { margin-left: var(--space-2); }
 .alert-error { background: var(--danger-soft); border-color: #fecaca; color: #7f1d1d; }
 .alert-success { background: var(--success-soft); border-color: #bbf7d0; color: #14532d; }
 .alert-info { background: var(--primary-soft); border-color: #bfdbfe; color: #1e3a8a; }
+.alert-message { margin: 0; }
+.alert-row { display: flex; gap: var(--space-3); align-items: flex-start; margin-top: var(--space-2); flex-wrap: wrap; }
+.alert-row .btn { color: var(--text); }
+.error-details { font-size: 0.82rem; }
+.error-details summary { cursor: pointer; font-weight: 600; }
+.error-details p { margin: var(--space-2) 0; }
 
 .empty { text-align: center; padding: var(--space-8) var(--space-4); color: var(--muted); }
 .empty h3 { color: var(--text); font-size: 1.05rem; margin-bottom: var(--space-2); }

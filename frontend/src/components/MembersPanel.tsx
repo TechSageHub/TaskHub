@@ -1,32 +1,33 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { api, ApiError } from '../api/client';
+import { api, toUserError } from '../api/client';
+import type { UserError } from '../api/client';
 import type { MembershipDto } from '../api/types';
-import { Alert, Avatar, Badge, Button, EmptyState, Modal, PageHeader, SkeletonRows } from './ui';
+import { Alert, Avatar, Badge, Button, EmptyState, ErrorAlert, Modal, PageHeader, SkeletonRows } from './ui';
 
 /** Members management. Same API/RBAC behaviour; table layout + add-member dialog. */
 export default function MembersPanel({ orgId, role }: { orgId: string; role: string }) {
   const [members, setMembers] = useState<MembershipDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserError | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const isAdmin = role === 'OrgAdmin';
 
   const load = useCallback(async () => {
     setLoading(true);
     try { setMembers((await api<MembershipDto[]>(`/api/v1/orgs/${orgId}/members`)).data); setError(null); }
-    catch (err) { setError((err as ApiError).message); }
+    catch (err) { setError(toUserError(err)); }
     finally { setLoading(false); }
   }, [orgId]);
   useEffect(() => { void load(); }, [load]);
 
   async function changeRole(m: MembershipDto, r: string) {
     try { await api(`/api/v1/orgs/${orgId}/members/${m.userId}`, { method: 'PATCH', body: { role: r } }); void load(); }
-    catch (err) { setError((err as ApiError).message); }
+    catch (err) { setError(toUserError(err)); }
   }
   async function remove(m: MembershipDto) {
     try { await api(`/api/v1/orgs/${orgId}/members/${m.userId}`, { method: 'DELETE' }); void load(); }
-    catch (err) { setError((err as ApiError).message); }
+    catch (err) { setError(toUserError(err)); }
   }
 
   return (
@@ -36,7 +37,7 @@ export default function MembersPanel({ orgId, role }: { orgId: string; role: str
         description={isAdmin ? 'Manage who belongs to this organisation and their roles.' : undefined}
         actions={isAdmin ? <Button variant="primary" onClick={() => setDialogOpen(true)}>Add member</Button> : undefined}
       />
-      {error && <Alert kind="error">{error} <Button variant="ghost" size="sm" onClick={() => void load()}>Retry</Button></Alert>}
+      {error && <ErrorAlert error={error} onRetry={() => void load()} />}
       {!isAdmin && <Alert kind="info">Only OrgAdmins can manage members. You have the Member role.</Alert>}
       {loading ? (
         <SkeletonRows label="Loading members…" />
@@ -69,23 +70,22 @@ export default function MembersPanel({ orgId, role }: { orgId: string; role: str
 }
 
 function AddMemberDialog({ orgId, onClose, onAdded, onError }: {
-  orgId: string; onClose: () => void; onAdded: () => void; onError: (m: string | null) => void;
+  orgId: string; onClose: () => void; onAdded: () => void; onError: (m: UserError | null) => void;
 }) {
   const [username, setUsername] = useState('');
   const [newRole, setNewRole] = useState('Member');
   const [busy, setBusy] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<UserError | null>(null);
 
   async function add(e: FormEvent) {
     e.preventDefault();
-    if (!username.trim()) { setLocalError('Enter the username of an existing TaskHub user.'); return; }
+    if (!username.trim()) { setLocalError({ message: 'Enter the username of an existing TaskHub user.' }); return; }
     setBusy(true); setLocalError(null); onError(null);
     try {
       await api(`/api/v1/orgs/${orgId}/members`, { method: 'POST', body: { username: username.trim(), role: newRole } });
       onAdded();
     } catch (err) {
-      const msg = (err as ApiError).message;
-      setLocalError(msg);
+      setLocalError(toUserError(err));
     } finally { setBusy(false); }
   }
 
@@ -102,7 +102,7 @@ function AddMemberDialog({ orgId, onClose, onAdded, onError }: {
             <option>Member</option><option>OrgAdmin</option>
           </select>
         </div>
-        {localError && <p className="alert alert-error" role="alert">{localError}</p>}
+        <ErrorAlert error={localError} />
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Adding…' : 'Add to organisation'}</button>

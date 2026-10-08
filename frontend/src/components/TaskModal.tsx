@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { api, ApiError, validateTodo } from '../api/client';
+import { api, ApiError, toUserError, validateTodo } from '../api/client';
+import type { UserError } from '../api/client';
 import type { TodoDto, TodoPriority, TodoStatus } from '../api/types';
-import { FieldError, Modal } from './ui';
+import { ErrorAlert, FieldError, Modal } from './ui';
 
 /** Create/edit dialog. Same API behaviour + accessible names as the previous inline form. */
 export default function TaskModal({ orgId, editing, onClose, onSaved }: {
@@ -15,7 +16,7 @@ export default function TaskModal({ orgId, editing, onClose, onSaved }: {
   const [tags, setTags] = useState(editing?.tags.join(', ') ?? '');
   const [dueDate, setDueDate] = useState(editing?.dueDate ? editing.dueDate.slice(0, 10) : '');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<UserError | null>(null);
   const [etag, setEtag] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -43,7 +44,7 @@ export default function TaskModal({ orgId, editing, onClose, onSaved }: {
     };
     try {
       if (editing) {
-        if (!etag) { setServerError('Version not loaded yet — please wait and retry.'); return; }
+        if (!etag) { setServerError({ message: 'The latest version is still loading. Please wait and try again.' }); return; }
         await api(`/api/v1/orgs/${orgId}/todos/${editing.id}`, { method: 'PUT', body, ifMatch: etag });
       } else {
         await api(`/api/v1/orgs/${orgId}/todos`, { method: 'POST', body });
@@ -51,12 +52,12 @@ export default function TaskModal({ orgId, editing, onClose, onSaved }: {
       onSaved();
     } catch (err) {
       const ae = err as ApiError;
-      if (ae.status === 412) setServerError('Someone else changed this todo. Latest version reloaded — review and save again.');
+      if (ae.status === 412) setServerError({ message: 'Someone else changed this todo. Latest version reloaded — review and save again.', reference: ae.correlationId });
       else if (ae.fields) {
         const flat: Record<string, string> = {};
         for (const [k, arr] of Object.entries(ae.fields)) flat[k.replace(/\[.*/, '')] = arr.join(' ');
         setErrors(flat);
-      } else setServerError(ae.message);
+      } else setServerError(toUserError(ae));
     } finally { setBusy(false); }
   }
 
@@ -113,7 +114,7 @@ export default function TaskModal({ orgId, editing, onClose, onSaved }: {
           <label htmlFor="todo-due">Due date</label>
           <input id="todo-due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </div>
-        {serverError && <p className="alert alert-error" role="alert">{serverError}</p>}
+        <ErrorAlert error={serverError} />
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>

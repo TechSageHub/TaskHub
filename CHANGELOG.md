@@ -3,6 +3,11 @@
 All notable changes to TaskHub. Format follows Keep a Changelog (Unreleased / versions).
 
 ## [Unreleased]
+### Fixed
+- User-facing errors no longer embed correlation/reference IDs, status codes, or
+  protocol terms. All failures map to fixed human-readable messages (keyed by
+  machine-readable error code); the correlation ID remains available under a
+  collapsed "Error details" disclosure with a copy action, plus Retry where useful.
 ### Changed
 - Frontend redesigned as a professional SaaS dashboard: sidebar navigation with
   organisation switcher, task dashboard with statistics, task dialog, members table

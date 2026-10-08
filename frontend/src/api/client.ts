@@ -79,3 +79,55 @@ export function validateTodo(title: string, description: string, tags: string[])
   else if (tags.some((t) => !/^[A-Za-z0-9_-]{1,30}$/.test(t))) errors.tags = "Tags: letters, numbers, - _ only (max 30).";
   return errors;
 }
+
+/**
+ * User-facing error: a fixed, human-readable message plus an optional support
+ * reference. The reference (backend correlation ID) is NEVER part of `message` —
+ * it is only surfaced through a secondary "Error details" disclosure in the UI.
+ */
+export interface UserError {
+  message: string;
+  reference?: string;
+}
+
+/**
+ * Maps any failure to a safe, fixed message keyed by machine-readable
+ * `code`/status — never by backend detail text, so internal wording,
+ * paths, or protocol terms can never leak into the UI.
+ */
+export function toUserError(err: unknown): UserError {
+  if (err instanceof ApiError) {
+    const reference = err.correlationId;
+    switch (err.code) {
+      case 'invalid-credentials': return { message: 'Username or password is incorrect.', reference };
+      case 'username-taken': return { message: 'That username is already taken.', reference };
+      case 'already-member': return { message: 'That user is already a member of this organisation.', reference };
+      case 'last-admin': return { message: 'You cannot remove or demote the last OrgAdmin.', reference };
+      case 'validation-failed': return { message: 'Please check the highlighted fields and try again.', reference };
+      case 'unauthorized': return { message: 'Your session has expired. Please log in again.', reference };
+      case 'forbidden': return { message: 'You do not have permission to do that.', reference };
+      case 'not-found': return { message: 'The requested item was not found.', reference };
+      case 'precondition-required': return { message: 'This action needs the latest version. Please reload and try again.', reference };
+      case 'precondition-failed': return { message: 'This item changed elsewhere. Please reload and try again.', reference };
+      case 'rate-limited': return { message: 'Too many attempts. Please wait a moment and try again.', reference };
+      default: break;
+    }
+    // Fallback by status for codes the UI does not know (forward-compatible).
+    switch (err.status) {
+      case 400: return { message: 'Please check your input and try again.', reference };
+      case 401: return { message: 'Your session has expired. Please log in again.', reference };
+      case 403: return { message: 'You do not have permission to do that.', reference };
+      case 404: return { message: 'The requested item was not found.', reference };
+      case 409: return { message: 'That change conflicts with the current state. Please reload and try again.', reference };
+      case 412: return { message: 'This item changed elsewhere. Please reload and try again.', reference };
+      case 428: return { message: 'This action needs the latest version. Please reload and try again.', reference };
+      case 429: return { message: 'Too many attempts. Please wait a moment and try again.', reference };
+      default: return { message: 'Something went wrong. Please try again.', reference };
+    }
+  }
+  if (err instanceof TypeError) {
+    // Fetch throws TypeError on network failure / CORS / offline.
+    return { message: 'Could not reach the server. Check your connection and try again.' };
+  }
+  return { message: 'Something went wrong. Please try again.' };
+}

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ApiError } from '../api/client';
+import { api, ApiError, toUserError } from '../api/client';
+import type { UserError } from '../api/client';
 import type { PageDto, TodoDto } from '../api/types';
 import TaskModal from './TaskModal';
-import { Alert, Badge, Button, EmptyState, Modal, PageHeader, Pagination, PriorityBadge, SkeletonRows, StatCard, StatusBadge } from './ui';
+import { Badge, Button, EmptyState, ErrorAlert, Modal, PageHeader, Pagination, PriorityBadge, SkeletonRows, StatCard, StatusBadge } from './ui';
 
 interface TodoFilters {
   status: string; overdue: boolean; tag: string; sort: string; order: string;
@@ -34,7 +35,7 @@ export function TodoList({ orgId }: { orgId: string }) {
   const [stats, setStats] = useState<Stats>({ total: 0, open: 0, done: 0, overdue: 0 });
   const [f, setF] = useState<TodoFilters>(DEFAULT_FILTERS);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserError | null>(null);
   const [modal, setModal] = useState<{ open: boolean; editing: TodoDto | null }>({ open: false, editing: null });
   const [confirmHardDelete, setConfirmHardDelete] = useState<TodoDto | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export function TodoList({ orgId }: { orgId: string }) {
         } catch { /* keep previous */ }
       }
       setEtags((p) => ({ ...p, ...next }));
-    } catch (err) { setError((err as ApiError).message); } finally { setLoading(false); }
+    } catch (err) { setError(toUserError(err)); } finally { setLoading(false); }
   }, [orgId, f]);
 
   useEffect(() => { void load(); }, [load]);
@@ -106,8 +107,8 @@ export function TodoList({ orgId }: { orgId: string }) {
       if (seqRef.current[todo.id] !== seq) return;
       setTodos((ts) => ts.map((t) => (t.id === todo.id ? prev : t))); // rollback
       setError(ae.status === 412
-        ? `“${prev.title}” changed elsewhere — reloaded latest version. Try again.`
-        : ae.message + (ae.correlationId ? ` (ref ${ae.correlationId})` : ''));
+        ? { message: `“${prev.title}” changed elsewhere — reloaded latest version. Try again.`, reference: ae.correlationId }
+        : toUserError(ae));
     } finally {
       if (seqRef.current[todo.id] === seq) setBusyId(null);
     }
@@ -115,25 +116,25 @@ export function TodoList({ orgId }: { orgId: string }) {
 
   async function remove(todo: TodoDto, permanent: boolean) {
     const etag = etags[todo.id];
-    if (!etag) { setError('No version known — reloading.'); void load(); return; }
+    if (!etag) { setError({ message: 'This item changed. Please reload and try again.' }); void load(); return; }
     setBusyId(todo.id);
     try {
       if (permanent) await api(`/api/v1/orgs/${orgId}/todos/${todo.id}/permanent`, { method: 'DELETE', ifMatch: etag });
       else await api(`/api/v1/orgs/${orgId}/todos/${todo.id}`, { method: 'DELETE', ifMatch: etag });
       setConfirmHardDelete(null);
       void load();
-    } catch (err) { setError((err as ApiError).message); }
+    } catch (err) { setError(toUserError(err)); }
     finally { setBusyId(null); }
   }
 
   async function restore(todo: TodoDto) {
     const etag = etags[todo.id];
-    if (!etag) { setError('No version known — reloading.'); void load(); return; }
+    if (!etag) { setError({ message: 'This item changed. Please reload and try again.' }); void load(); return; }
     setBusyId(todo.id);
     try {
       await api(`/api/v1/orgs/${orgId}/todos/${todo.id}/restore`, { method: 'POST', body: {}, ifMatch: etag });
       void load();
-    } catch (err) { setError((err as ApiError).message); }
+    } catch (err) { setError(toUserError(err)); }
     finally { setBusyId(null); }
   }
 
@@ -182,7 +183,7 @@ export function TodoList({ orgId }: { orgId: string }) {
         {filtersActive && <Button variant="ghost" size="sm" onClick={() => setF({ ...DEFAULT_FILTERS, sort: f.sort, order: f.order })}>Reset filters</Button>}
       </div>
 
-      {error && <Alert kind="error">{error}</Alert>}
+      <ErrorAlert error={error} onRetry={() => void load()} />
 
       <section aria-label="Todos">
         <h3 className="sr-only">Todos, {total} total</h3>

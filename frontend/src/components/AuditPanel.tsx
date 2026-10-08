@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, ApiError } from '../api/client';
+import { api, toUserError } from '../api/client';
+import type { UserError } from '../api/client';
 import type { AuditEntry, PageDto } from '../api/types';
-import { Alert, Button, EmptyState, PageHeader, SkeletonRows } from './ui';
+import { Alert, Button, EmptyState, ErrorAlert, PageHeader, SkeletonRows } from './ui';
 
 const ENTITY_TYPES = ['', 'Todo', 'Membership', 'Organisation', 'User', 'Import'];
 
@@ -9,7 +10,7 @@ const ENTITY_TYPES = ['', 'Todo', 'Membership', 'Organisation', 'User', 'Import'
 export default function AuditPanel({ orgId, role }: { orgId: string; role: string }) {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserError | null>(null);
   const [entityType, setEntityType] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -21,7 +22,7 @@ export default function AuditPanel({ orgId, role }: { orgId: string; role: strin
         query: { pageSize: 20, page, ...(entityType ? { entityType } : {}) },
       });
       setEntries(data.items); setTotalPages(Math.max(1, data.totalPages)); setError(null);
-    } catch (err) { setError((err as ApiError).message); }
+    } catch (err) { setError(toUserError(err)); }
     finally { setLoading(false); }
   }, [orgId, entityType, page]);
   useEffect(() => { void load(); }, [load]);
@@ -30,14 +31,14 @@ export default function AuditPanel({ orgId, role }: { orgId: string; role: strin
     <div>
       <PageHeader title="Audit log" />
       <Alert kind="error">Only OrgAdmins can view the audit log.</Alert>
-      {error && <Alert kind="error">{error}</Alert>}
+      <ErrorAlert error={error} />
     </div>
   );
 
   return (
     <div>
       <PageHeader title="Audit log" description="Every important event in this organisation, newest first." />
-      {error && <Alert kind="error">{error} <Button variant="ghost" size="sm" onClick={() => void load()}>Retry</Button></Alert>}
+      <ErrorAlert error={error} onRetry={() => void load()} />
       <div className="toolbar" role="group" aria-label="Audit filters">
         <div className="field">
           <label htmlFor="audit-entity">Entity type</label>
