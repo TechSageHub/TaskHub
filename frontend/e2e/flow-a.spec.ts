@@ -15,7 +15,7 @@ test('Flow A — member journey', async ({ page }) => {
   await page.getByLabel('Username').fill(username);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByText(`Signed in as ${username}`)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(`Welcome, ${username}`)).toBeVisible({ timeout: 15000 });
 
   // create organisation
   await page.getByLabel('New organisation name').fill('E2E Org A');

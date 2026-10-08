@@ -19,7 +19,7 @@ async function register(page: import('@playwright/test').Page, username: string)
   await page.getByLabel('Username').fill(username);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByText(`Signed in as ${username}`)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(`Welcome, ${username}`)).toBeVisible({ timeout: 15000 });
 }
 
 test('Flow B — org admin journey', async ({ page, context }) => {

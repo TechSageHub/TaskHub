@@ -127,7 +127,7 @@ export default function App() {
           <button type="button" className="btn btn-secondary btn-sm hamburger" aria-label="Open navigation" onClick={() => setNavOpen(true)}>Menu</button>
           <h1>{activeOrg ? `${activeOrg.name} — ${activeLabel}` : 'TaskHub'}</h1>
           <div className="topbar-right">
-            <span className="who-text" aria-label="signed in as">Signed in as <strong>{user.username}</strong></span>
+            <span>Welcome, <strong>{user.username}</strong></span>
           </div>
         </header>
         <main id="main-content" className="content" tabIndex={-1}>

@@ -381,7 +381,6 @@ table.data td.actions-cell .btn + .btn { margin-left: var(--space-2); }
 @media (max-width: 520px) {
   .stat-grid { grid-template-columns: 1fr 1fr; }
   .topbar { padding: 0 var(--space-4); }
-  .topbar .who-text { display: none; }
   .page-header .actions { margin-left: 0; width: 100%; }
   .page-header .actions .btn { flex: 1; }
 }
