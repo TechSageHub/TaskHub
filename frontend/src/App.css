@@ -1,4 +1,6 @@
-:root { font-family: system-ui, sans-serif; color: #1a1a1a; background: #f6f6f4; }
+:root { font-family: system-ui, sans-serif; color-scheme: light; }
+body { margin: 0; color: #1a1a1a; background: #f6f6f4; }
+button, input, select, textarea { color: #1a1a1a; background: #fff; color-scheme: light; }
 .wrap { max-width: 880px; margin: 0 auto; padding: 1rem; }
 .wrap.narrow { max-width: 460px; }
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
