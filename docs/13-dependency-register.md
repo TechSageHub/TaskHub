@@ -21,6 +21,7 @@ Policy: minimal dependencies; every non-framework package justified here.
 | vite / @vitejs/plugin-react | 8.x / 6.x | Build + dev proxy | Required toolchain | Low |
 | typescript | 6.x | Types | Required stack | Low |
 | vitest / jsdom / @testing-library/* | 5.x / 30.x / 16.x | Component + unit tests | Required test levels | Low: dev-only |
+| @vitest/coverage-v8 | 5.x | V8 coverage provider (`npm run test -- --coverage`) | Required by CI coverage step; default provider for Vitest 5 | Low: dev-only |
 | @playwright/test | 1.64 | E2E (Flows A + B) | Required E2E; no lighter credible option | Low: dev-only, browsers downloaded on demand |
 | oxlint | 1.x | Lint | Lightweight, fast; replaces heavier eslint setup | Low: dev-only |
 
