@@ -110,6 +110,14 @@ export default function App() {
         <div className="side-footer">
           <span className="who"><strong>{user.username}</strong></span>
           {activeOrg && <span className="org-role">{role} · {orgs.length} organisation{orgs.length === 1 ? '' : 's'}</span>}
+          <button type="button" className="btn btn-sidebar btn-sm" onClick={() => void logout()}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Log out
+          </button>
         </div>
       </aside>
       <button type="button" className="nav-backdrop" aria-label="Close navigation" onClick={() => setNavOpen(false)} tabIndex={-1} />
@@ -120,7 +128,6 @@ export default function App() {
           <h1>{activeOrg ? `${activeOrg.name} — ${activeLabel}` : 'TaskHub'}</h1>
           <div className="topbar-right">
             <span className="who-text" aria-label="signed in as">Signed in as <strong>{user.username}</strong></span>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void logout()}>Log out</button>
           </div>
         </header>
         <main id="main-content" className="content" tabIndex={-1}>
